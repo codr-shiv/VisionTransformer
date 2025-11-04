@@ -30,6 +30,7 @@ typedef struct {
 #define T1(t,d) (t.data[d])
 #define T3(t,b,x,d) (t.data[ ((b)*(t.X) + (x))*(t.D) + (d) ])
 #define T4(t,b,h,x,y) (t.data[ (((b)*(t.H) + (h))*(t.X) + (x))*(t.Y) + (y) ])
+// #define T4(t, b, h, y, x) (t.data[ (((b) * (t.H) + (h)) * (t.Y) + (y)) * (t.X) + (x) ])
 
 float* alloc_aligned(size_t);
 Tensor1 alloc_tensor1(int);

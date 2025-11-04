@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 // old funcs
 
@@ -125,17 +126,12 @@ Tensor4 LoadImageFromPPM(const char *Path) {
     }
     ungetc(c, fp);
 
-    // Read width/height
     fscanf(fp, "%d %d", &width, &height);
-
-    // Read maxval
     fscanf(fp, "%d", &maxval);
-
-    // **Consume exactly one whitespace character after maxval**
     fgetc(fp);
 
-    printf("Width = %d, Height = %d, Max = %d\n", width, height, maxval);
-    // Allocate pixel buffer
+    // printf("Width = %d, Height = %d, Max = %d\n", width, height, maxval);
+
     size_t size = (width) * (height) * 3;
     unsigned char *data = (unsigned char*)malloc(size);
     if (!data) {
@@ -152,54 +148,109 @@ Tensor4 LoadImageFromPPM(const char *Path) {
     }
     fclose(fp);
 
-    Tensor4 output = alloc_tensor4(DATASET_BATCH_SIZE, 3, width, height);
+    Tensor4 output = alloc_tensor4(DATASET_BATCH_SIZE, 3, height, width);
     for (int c = 0; c < 3; c++) {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                T4(output, 0, c, y, x) = (float) ((int)data[(y*width + x)*3 + c]/255.0f);
+                // printf("%lf ", ((float)data[(y*width + x)*3 + c])/255.0f);
+                T4(output, 0, c, y, x) = ((float)data[(y*width + x)*3 + c])/255.0f;
             }
         }
     }
+    free(data);
     return output;
 }
 
 Tensor4 Resize256(Tensor4 input) {
-    int row = input.Y, col = input.X;
-    if (input.X>input.Y)
-        col = PREPROCESS_SCALE;
-    else
-        row = PREPROCESS_SCALE;
+    int src_w = input.Y;
+    int src_h = input.X;
+    int dst_w, dst_h;
 
-    Tensor4 output = alloc_tensor4(DATASET_BATCH_SIZE, 3, row, col);
-    const float scale_x = (float)((IMAGE_SIZE-1)/(col-1));
-    const float scale_y = (float)((IMAGE_SIZE-1)/(row-1));
+    if (src_w>=src_h) {
+        dst_h = PREPROCESS_SCALE;
+        dst_w = (int)roundf(((float)dst_h/src_h)*src_w);
+    }
+    else {
+        dst_w = PREPROCESS_SCALE;
+        dst_h = (int)roundf(((float)dst_w/src_w)*src_h);
+    }
+    Tensor4 out = alloc_tensor4(DATASET_BATCH_SIZE, 3, dst_h, dst_w); // B=1, C=3, H=dst_h, W=dst_w
 
-    for (int b=0; b<DATASET_BATCH_SIZE; b++)
-        for (int c=0; c<3; c++)
-            for (int x=0; x<col; x++) {
+    // double x_ratio = (double)(src_w) / dst_w;
+    // double y_ratio = (double)(src_h) / dst_h;
 
-                float x_in = x * scale_x;
-                int x0 = (int)x_in;
-                int x1 = (x0 < IMAGE_SIZE - 1) ? x0 + 1 : x0;
-                float dx = x_in - x0;
+    for (int y = 0; y < dst_h; y++) {
 
-                for (int y=0; y<row; y++) {
-                    float y_in = y * scale_y;
-                    int y0 = (int)y_in;
-                    int y1 = (y0 < IMAGE_SIZE - 1) ? y0 + 1 : y0;
-                    float dy = y_in - y0;
+        // double sy = (y + 0.5) * y_ratio - 0.5;
+        double sy = (float)y * (src_h - 1) / (dst_h - 1);
 
-                    float p00 = T4(input, b, c, x0, y0);
-                    float p01 = T4(input, b, c, x0, y1);
-                    float p10 = T4(input, b, c, x1, y0);
-                    float p11 = T4(input, b, c, x1, y1);
+        if (sy < 0) sy = 0;
+        int y0 = (int)sy;
+        int y1 = y0 + 1;
+        double wy = sy - y0;
+        if (y1 >= src_h) { y1 = src_h - 1; wy = 0.0; }
 
-                    float v0 = p00 * (1 - dy) + p01 * dy;
-                    float v1 = p10 * (1 - dy) + p11 * dy;
-                    float val = v0 * (1 - dx) + v1 * dx;
+        for (int x = 0; x < dst_w; x++) {
 
-                    T4(output, b, c, x, y) = val/255.0f;
-                }
+            // double sx = (x + 0.5) * x_ratio - 0.5;
+            double sx = (float)x * (src_w - 1) / (dst_w - 1);
+
+            if (sx < 0) sx = 0;
+            int x0 = (int)sx;
+            int x1 = x0 + 1;
+            double wx = sx - x0;
+            if (x1 >= src_w) { x1 = src_w - 1; wx = 0.0; }
+
+            float w00 = (1.0 - wx) * (1.0 - wy);
+            float w10 = wx * (1.0 - wy);
+            float w01 = (1.0 - wx) * wy;
+            float w11 = wx * wy;
+
+            // size_t idx00 = (y0 * src_w + x0) * 3;
+            // size_t idx10 = (y0 * src_w + x1) * 3;
+            // size_t idx01 = (y1 * src_w + x0) * 3;
+            // size_t idx11 = (y1 * src_w + x1) * 3;
+
+            for (int c = 0; c < 3; c++) {
+                double v00 = T4(input, 0, c, y0, x0);
+                double v10 = T4(input, 0, c, y0, x1);
+                double v01 = T4(input, 0, c, y1, x0);
+                double v11 = T4(input, 0, c, y1, x1);
+
+                double val = v00 * w00 + v10 * w10 + v01 * w01 + v11 * w11;
+                T4(out, 0, c, y, x) = (float)val;
             }
-    return output;
+        }
+    }
+
+    return out;
+}
+
+Tensor4 Crop224(Tensor4 input) {
+    Tensor4 out = alloc_tensor4(DATASET_BATCH_SIZE, 3, IMAGE_SCALING, IMAGE_SCALING);
+    int top = roundf((input.X-IMAGE_SCALING)/2.0f);
+    int left = roundf((input.Y-IMAGE_SCALING)/2.0f);
+    // int bottom = input.X - IMAGE_SCALING - top;
+    // int right = input.Y - IMAGE_SCALING - left;
+    for (int x = 0; x < IMAGE_SCALING; x++) {
+        for (int y = 0; y < IMAGE_SCALING; y++) {
+            for (int c = 0; c < 3; c++) {
+                T4(out, 0, c, y, x) = T4(input, 0, c, top+y, left+x);
+            }
+        }
+    }
+    return out;
+}
+
+void Normalize(Tensor4 input) {
+    float mean[3] = {0.485, 0.456, 0.406};
+    float std[3] = {0.229, 0.224, 0.225};
+
+    for (int x = 0; x < IMAGE_SCALING; x++) {
+        for (int y = 0; y < IMAGE_SCALING; y++) {
+            for (int c = 0; c < 3; c++) {
+                T4(input, 0, c, y, x) = (T4(input, 0, c, y, x) - mean[c])/std[c];
+            }
+        }
+    }
 }
