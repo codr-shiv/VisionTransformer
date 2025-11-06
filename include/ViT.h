@@ -3,6 +3,7 @@
 
 #include "structs.h"
 #include "image.h"
+#include "funcs.h"
 
 #define DATASET_SIZE 50000          // 50000
 #define IMAGE_SIZE 32               // 32

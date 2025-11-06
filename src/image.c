@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <assert.h>
 
 // old funcs
 
@@ -42,7 +43,7 @@ Tensor4 LoadCIFAR10Dataset(const char *Path, char *Labels, int Batch) {
 Tensor4 ResizeTo224(Tensor4 input) {
 
     Tensor4 output = alloc_tensor4(DATASET_BATCH_SIZE, 3, IMAGE_SCALING, IMAGE_SCALING);
-    const float scale = (float)((IMAGE_SIZE-1)/(IMAGE_SCALING-1));
+    const float scale = ((float)(IMAGE_SIZE-1)/(IMAGE_SCALING-1));
 
     for (int b=0; b<DATASET_BATCH_SIZE; b++)
         for (int c=0; c<3; c++)
@@ -253,4 +254,28 @@ void Normalize(Tensor4 input) {
             }
         }
     }
+}
+
+Tensor3 Conv2D(Tensor4 Images, Tensor4 Kernel, Tensor1 bias) {
+    Tensor3 out = alloc_tensor3(Images.B, IMAGE_SCALING*IMAGE_SCALING/(Kernel.X*Kernel.Y), Kernel.B);
+
+    for (int c = 0; c < Kernel.B; c++) {
+        int indx = 0;
+        // H = vertical, W = horizontal
+        for (int y0 = 0; y0 < IMAGE_SCALING; y0 += Kernel.X) {      // move vertically
+            for (int x0 = 0; x0 < IMAGE_SCALING; x0 += Kernel.Y) {  // move horizontally
+                float sum = 0.0f;
+                for (int cc = 0; cc < 3; cc++) {
+                    for (int ky = 0; ky < Kernel.Y; ky++) {
+                        for (int kx = 0; kx < Kernel.X; kx++) {
+                            sum += T4(Images, 0, cc, y0 + ky, x0 + kx) * T4(Kernel, c, cc, ky, kx);
+                        }
+                    }
+                }
+                T3(out, 0, indx, c) = sum + bias.data[c];
+                indx++;
+            }
+        }
+    }
+    return out;
 }

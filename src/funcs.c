@@ -2,6 +2,86 @@
 #include <math.h>
 #include <stdio.h>
 
+void print_tensor4(Tensor4 t) {
+    int lim = 3;
+    int B = t.B;
+    int C = t.H;
+    int H = t.X;
+    int W = t.Y;
+    printf("[\n");
+    for (int b = 0; b < B; b++) {
+        printf("    [\n");
+        for (int c = 0; c < C; c++) {
+            printf("        [\n");
+            for (int y = 0; y < H; y++) {
+                if (y>=lim && y<H-lim) {
+                    printf("            ...,\n");
+                    y=H-lim;
+                }
+                printf("            [");
+                for (int x = 0; x < W; x++) {
+                    if (x>=lim && x<W-lim) {
+                        printf("..., ");
+                        x=W-lim;
+                    }
+                    printf("%7.4f", T4(t, b, c, y, x));
+                    if (x < W - 1) printf(", ");
+                }
+                printf("]");
+                if (y < H - 1) printf(",\n");
+                else printf("\n");
+            }
+            printf("        ]");
+            if (c < C - 1) printf(",\n\n");
+            else printf("\n");
+        }
+        printf("    ]");
+        if (b < B - 1) printf(",\n\n");
+        else printf("\n");
+    }
+    printf("]\n");
+}
+
+void print_tensor3(Tensor3 t) {
+    int lim = 3;
+    int B = t.B;
+    int X = t.X;
+    int D = t.D;
+
+    printf("[\n");
+    for (int b = 0; b < B; b++) {
+        printf("  [\n");
+        for (int x = 0; x < X; x++) {
+
+            if (x == lim && X > 2 * lim) {
+                printf("    ...,\n");
+                x = X - lim;
+            }
+
+            printf("    [");
+            for (int d = 0; d < D; d++) {
+
+                if (d == lim && D > 2 * lim) {
+                    printf("..., ");
+                    d = D - lim;
+                }
+
+                printf("%10.4f", T3(t, b, x, d));
+                if (d < D - 1) printf(", ");
+            }
+            printf("]");
+
+            if (x < X - 1) printf(",\n");
+            else printf("\n");
+        }
+        printf("  ]");
+        if (b < B - 1) printf(",\n\n");
+        else printf("\n");
+    }
+    printf("]\n");
+}
+
+
 Tensor4 split_heads(Tensor3 in, int H) {
     int B = in.B, X = in.X, D = in.D;
     int Y = D / H;
