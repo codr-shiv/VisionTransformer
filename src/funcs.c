@@ -1,5 +1,6 @@
 #include "../include/funcs.h"
 #include <math.h>
+#include <string.h>
 #include <stdio.h>
 
 void print_tensor4(Tensor4 t) {

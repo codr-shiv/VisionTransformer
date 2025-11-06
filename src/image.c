@@ -177,13 +177,13 @@ Tensor4 Resize256(Tensor4 input) {
     }
     Tensor4 out = alloc_tensor4(DATASET_BATCH_SIZE, 3, dst_h, dst_w); // B=1, C=3, H=dst_h, W=dst_w
 
-    // double x_ratio = (double)(src_w) / dst_w;
-    // double y_ratio = (double)(src_h) / dst_h;
+    double x_ratio = (double)(src_w) / dst_w;
+    double y_ratio = (double)(src_h) / dst_h;
 
     for (int y = 0; y < dst_h; y++) {
 
-        // double sy = (y + 0.5) * y_ratio - 0.5;
-        double sy = (float)y * (src_h - 1) / (dst_h - 1);
+        double sy = (y + 0.5) * y_ratio - 0.5;
+        // double sy = (float)y * (src_h - 1) / (dst_h - 1);
 
         if (sy < 0) sy = 0;
         int y0 = (int)sy;
@@ -193,8 +193,8 @@ Tensor4 Resize256(Tensor4 input) {
 
         for (int x = 0; x < dst_w; x++) {
 
-            // double sx = (x + 0.5) * x_ratio - 0.5;
-            double sx = (float)x * (src_w - 1) / (dst_w - 1);
+            double sx = (x + 0.5) * x_ratio - 0.5;
+            // double sx = (float)x * (src_w - 1) / (dst_w - 1);
 
             if (sx < 0) sx = 0;
             int x0 = (int)sx;
@@ -265,14 +265,22 @@ Tensor3 Conv2D(Tensor4 Images, Tensor4 Kernel, Tensor1 bias) {
         for (int y0 = 0; y0 < IMAGE_SCALING; y0 += Kernel.X) {      // move vertically
             for (int x0 = 0; x0 < IMAGE_SCALING; x0 += Kernel.Y) {  // move horizontally
                 float sum = 0.0f;
+                int count=0;
                 for (int cc = 0; cc < 3; cc++) {
                     for (int ky = 0; ky < Kernel.Y; ky++) {
                         for (int kx = 0; kx < Kernel.X; kx++) {
                             sum += T4(Images, 0, cc, y0 + ky, x0 + kx) * T4(Kernel, c, cc, ky, kx);
+                            count++;
+                            // printf("%d: %6.4f\n", count, T4(Images, 0, cc, y0 + ky, x0 + kx) * T4(Kernel, c, cc, ky, kx));
                         }
                     }
                 }
                 T3(out, 0, indx, c) = sum + bias.data[c];
+                // printf("\n%10.4f\n\n", sum + bias.data[c]);
+
+                // int tmp;
+                // scanf("%d", &tmp);
+                
                 indx++;
             }
         }
