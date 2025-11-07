@@ -43,7 +43,6 @@ Matrix alloc_matrix(int, int);
 Tensor1 alloc_tensor1(int);
 Tensor3 alloc_tensor3(int, int, int);
 Tensor4 alloc_tensor4(int, int, int, int);
-Matrix alloc_matrix(int, int);
 
 void free_matrix(Matrix);
 void free_tensor1(Tensor1);

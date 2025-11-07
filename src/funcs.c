@@ -126,8 +126,8 @@ Tensor4 qk_dot(Tensor4 Q, Tensor4 K) {
     return Scores;
 }
 
-void scale_scores(Tensor4 Scores) {
-    float s = 1.0f / sqrtf((float)Scores.Y);
+void scale_scores(Tensor4 Scores, int d_k) {
+    float s = 1.0f / sqrtf((float)d_k);
     int B=Scores.B, H=Scores.H, X=Scores.X;
 
     for(int b=0; b<B; b++)
@@ -304,6 +304,7 @@ Tensor3 mlp_forward(Tensor3 in, MLP_Weights* weights) {
 
     return fc2_out;
 }
+
 Matrix transpose(Matrix input) {
     Matrix output = alloc_matrix(input.cols, input.rows);
 
