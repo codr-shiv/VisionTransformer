@@ -11,5 +11,6 @@ Tensor3 MakePatches(Tensor4);
 Tensor4 Crop224(Tensor4);
 void Normalize(Tensor4);
 Tensor3 Conv2D(Tensor4, Tensor4, Tensor1);
+Tensor3 addCLSToken(Tensor3, Tensor3, Tensor3);
 
 #endif

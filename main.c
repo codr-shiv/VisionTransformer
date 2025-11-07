@@ -39,8 +39,15 @@ int main() {
 
     Tensor3 conv = Conv2D(CroppedImages, patch_embed_proj_weights, patch_embed_proj_biases);
     printf("[%d %d %d]\n", conv.B, conv.X, conv.D);
-    printf("\n\nConvultioned Image\n");
+    printf("\n\nConvoltioned Image\n");
     print_tensor3(conv);
+
+    Tensor3 cls = GetData3("parameters/cls_token.bin");
+    Tensor3 pos_embed = GetData3("parameters/pos_embed.bin");
+    printf("\n\nPatch Embedded Image\n");
+    Tensor3 PreprocessedInputs = addCLSToken(conv, cls, pos_embed);
+    print_tensor3(PreprocessedInputs);
+    
 
     // ========================= PUT INTO LOOPS LATER =========================
     Tensor1 zero_norm1_weight = GetData1("parameters/blocks_0_norm1_weight.bin");
@@ -58,6 +65,9 @@ int main() {
     free_tensor1(patch_embed_proj_biases);
     free_tensor1(zero_norm1_weight);
     free_tensor1(zero_norm1_bias);
+    free_tensor3(cls);
+    free_tensor3(pos_embed);
     free_tensor3(conv);
+    free_tensor3(PreprocessedInputs);
     free(Labels);
 }

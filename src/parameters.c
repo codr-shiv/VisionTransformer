@@ -20,6 +20,22 @@ Tensor4 GetData4(const char *path) {
     return out;
 }
 
+Tensor3 GetData3(const char *path) {
+    FILE *f = fopen(path, "rb");
+    if (!f) { printf("File not found: %s\n", path); exit(1); }
+
+    int B, X, D;
+    fread(&B, sizeof(int), 1, f);
+    fread(&X, sizeof(int), 1, f);
+    fread(&D, sizeof(int), 1, f);
+
+    Tensor3 out = alloc_tensor3(B, X, D);
+    fread(out.data, sizeof(float), B*X*D, f);
+
+    fclose(f);
+    return out;
+}
+
 Tensor1 GetData1(const char *path) {
     FILE *f = fopen(path, "rb");
     if (!f) { printf("File not found: %s\n", path); exit(1); }

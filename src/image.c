@@ -288,10 +288,15 @@ Tensor3 Conv2D(Tensor4 Images, Tensor4 Kernel, Tensor1 bias) {
     return out;
 }
 
-Tensor3 addCLSToken(Tensor3 in, Tensor3 token) {
+Tensor3 addCLSToken(Tensor3 in, Tensor3 token, Tensor3 PositionEmbed) {
     Tensor3 out = alloc_tensor3(in.B, in.X+1, in.D);
     for (int i = 0; i < in.D; i++) {
-        T3(out, 0, 0, i) = T3(token, 0, 0, i);
+        T3(out, 0, 0, i) = T3(token, 0, 0, i) + T3(PositionEmbed, 0, 0, i);
     }
-    
+    for (int x = 0; x < in.X; x++) {
+        for (int d = 0; d < in.D; d++) {
+            T3(out, 0, x+1, d) = T3(in, 0, x, d) + T3(PositionEmbed, 0, x+1, d);
+        }
+    }
+    return out;
 }
