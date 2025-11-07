@@ -3,6 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+char *GetPath(int b, const char *suffix) {
+    static char out[64];
+    snprintf(out, sizeof(out), "parameters/blocks_%d_%s.bin", b, suffix);
+    // printf("%s\n", out);
+    return out;
+}
+
 Tensor4 GetData4(const char *path) {
     FILE *f = fopen(path, "rb");
     if (!f) { printf("File not found: %s\n", path); exit(1); }
@@ -31,6 +38,21 @@ Tensor3 GetData3(const char *path) {
 
     Tensor3 out = alloc_tensor3(B, X, D);
     fread(out.data, sizeof(float), B*X*D, f);
+
+    fclose(f);
+    return out;
+}
+
+Matrix GetData2(const char *path) {
+    FILE *f = fopen(path, "rb");
+    if (!f) { printf("File not found: %s\n", path); exit(1); }
+
+    int R, C;
+    fread(&R, sizeof(int), 1, f);
+    fread(&C, sizeof(int), 1, f);
+
+    Matrix out = alloc_matrix(R, C);
+    fread(out.data, sizeof(float), R*C, f);
 
     fclose(f);
     return out;

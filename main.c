@@ -50,12 +50,26 @@ int main() {
     
 
     // ========================= PUT INTO LOOPS LATER =========================
-    Tensor1 zero_norm1_weight = GetData1("parameters/blocks_0_norm1_weight.bin");
-    Tensor1 zero_norm1_bias = GetData1("parameters/blocks_0_norm1_bias.bin");
+    for (int e = 0; e < ENCODER_BLOCKS; e++) {
+        Tensor1 zero_norm_weight = GetData1(GetPath(e, "norm1_weight"));
+        Tensor1 zero_norm_bias = GetData1(GetPath(e, "norm1_bias"));
 
-    // conv = layernorm(conv, zero_norm1_weight, zero_norm1_bias);
-    // printf("\n\nNorm1ed Image\n");
-    // print_tensor3(conv);
+        PreprocessedInputs = layernorm(PreprocessedInputs, zero_norm_weight, zero_norm_bias);
+        printf("\n\nNorm1ed Image\n");
+        print_tensor3(PreprocessedInputs);
+
+        Matrix qkv_weight = GetData2(GetPath(e, "attn_qkv_weight"));
+        Matrix qkv_bias = GetData2(GetPath(e, "attn_qkv_bias"));
+
+        Tensor3 MHAOutput = MHA(PreprocessedInputs, qkv_weight, qkv_bias);
+        print_tensor3(PreprocessedInputs);
+
+        free_tensor1(zero_norm_weight);
+        free_tensor1(zero_norm_bias);
+        free_matrix(qkv_weight);
+        free_matrix(qkv_bias);
+        free_tensor3(MHAOutput);
+    }
     // ========================= PUT INTO LOOPS LATER =========================
     
     free_tensor4(Images);
@@ -63,8 +77,6 @@ int main() {
     free_tensor4(CroppedImages);
     free_tensor4(patch_embed_proj_weights);
     free_tensor1(patch_embed_proj_biases);
-    free_tensor1(zero_norm1_weight);
-    free_tensor1(zero_norm1_bias);
     free_tensor3(cls);
     free_tensor3(pos_embed);
     free_tensor3(conv);
