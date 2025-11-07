@@ -46,7 +46,8 @@ Tensor4 alloc_tensor4(int B, int H, int X, int Y) {
     return t;
 }
 
-void free_matrix(Matrix m) {free(m.data);}
+
 void free_tensor1(Tensor1 t) { free(t.data); }
 void free_tensor3(Tensor3 t) {free(t.data);}
 void free_tensor4(Tensor4 t) {free(t.data);}
+void free_matrix(Matrix m) { free(m.data); }

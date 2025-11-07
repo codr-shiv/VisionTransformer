@@ -2,7 +2,6 @@
 #define STRUCT_H
 
 #include <stdlib.h>
-
 typedef struct {
     float *data;
     int rows;
@@ -24,6 +23,13 @@ typedef struct {
     float *data;
 } Tensor1;
 
+typedef struct {
+    Matrix fc1_weight; 
+    Tensor1 fc1_bias;  
+    
+    Matrix fc2_weight; 
+    Tensor1 fc2_bias; 
+} MLP_Weights;
 
 #define EPS 1e-5f
 #define M(mat, r, c) mat.data[(r) * mat.cols + (c)]
