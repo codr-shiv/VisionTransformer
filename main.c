@@ -34,8 +34,8 @@ int main() {
     //     patch_embed_proj_biases.data[i] = 1.0f;
     // }
 
-    Tensor4 patch_embed_proj_weights = GetData4("parameters/patch_weight.bin");
-    Tensor1 patch_embed_proj_biases = GetData1("parameters/patch_bias.bin");
+    Tensor4 patch_embed_proj_weights = GetData4("parameters/patch_embed_proj_weight.bin");
+    Tensor1 patch_embed_proj_biases = GetData1("parameters/patch_embed_proj_bias.bin");
 
     Tensor3 conv = Conv2D(CroppedImages, patch_embed_proj_weights, patch_embed_proj_biases);
     printf("[%d %d %d]\n", conv.B, conv.X, conv.D);
@@ -43,8 +43,8 @@ int main() {
     print_tensor3(conv);
 
     // ========================= PUT INTO LOOPS LATER =========================
-    Tensor1 zero_norm1_weight = GetData1("parameters/0_norm1_weight.bin");
-    Tensor1 zero_norm1_bias = GetData1("parameters/0_norm1_bias.bin");
+    Tensor1 zero_norm1_weight = GetData1("parameters/blocks_0_norm1_weight.bin");
+    Tensor1 zero_norm1_bias = GetData1("parameters/blocks_0_norm1_bias.bin");
 
     // conv = layernorm(conv, zero_norm1_weight, zero_norm1_bias);
     // printf("\n\nNorm1ed Image\n");

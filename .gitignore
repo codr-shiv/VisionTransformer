@@ -1,7 +1,7 @@
 /build/
 /dataset/cifar-10-batches-bin
 /dataset/cifar-100-binary
-*.bin
+# *.bin
 *.html
 *.tar.gz
 *.txt
