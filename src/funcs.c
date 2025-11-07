@@ -156,3 +156,75 @@ void softmax_matrix(Matrix input, Matrix output) {
         }
     }
 }
+
+
+
+Matrix transpose_matrix(Matrix W) {
+    Matrix T = alloc_matrix(W.cols, W.rows);
+    for (int r = 0; r < W.rows; r++) 
+        for (int c = 0; c < W.cols; c++)
+            M(T, c, r) = M(W, r, c);
+    return T;
+}
+
+Tensor3 gemm(Tensor3 A, Matrix W) {
+    int B = A.B;
+    int S = A.X;
+    int D_in = A.D; 
+    int D_out = W.cols;
+
+    Tensor3 Out = alloc_tensor3(B, S, D_out);
+
+    for (int b = 0; b < B; b++)
+        for (int s = 0; s < S; s++)
+            for (int d_out = 0; d_out < D_out; d_out++) {
+                float sum = 0.0f;
+                for (int d_in = 0; d_in < D_in; d_in++) 
+                    sum += T3(A, b, s, d_in) * M(W, d_in, d_out);
+                T3(Out, b, s, d_out) = sum;
+            }
+        
+    return Out;
+}
+
+void add_bias(Tensor3 A, Tensor1 bias) {
+    int B = A.B, X = A.X, D = A.D;
+    for (int b = 0; b < B; b++) 
+        for (int x = 0; x < X; x++)
+            for (int d = 0; d < D; d++)
+                T3(A, b, x, d) += T1(bias, d);
+}
+
+// GELU(x) = 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
+void gelu(Tensor3 A) {
+    size_t total_elements = (size_t)A.B * A.X * A.D;
+
+    for (size_t i = 0; i < total_elements; i++) {
+        float x = A.data[i];
+        float cube = 0.044715f * x * x * x;
+        float inner = 0.79788456f * (x + cube);
+        A.data[i] = 0.5f * x * (1.0f + tanhf(inner));
+    }
+}
+
+
+Tensor3 mlp_forward(Tensor3 in, MLP_Weights* weights) {
+
+    Matrix fc1_wT = transpose_matrix(weights->fc1_weight);
+    Matrix fc2_wT = transpose_matrix(weights->fc2_weight);
+    
+    // [1, 197, 192] * [192, 768] = [1, 197, 768]
+    Tensor3 fc1_out = gemm(in, fc1_wT);
+    add_bias(fc1_out, weights->fc1_bias); 
+    gelu(fc1_out); 
+
+    // [1, 197, 768] * [768, 192] = [1, 197, 192]
+    Tensor3 fc2_out = gemm(fc1_out, fc2_wT);
+    add_bias(fc2_out, weights->fc2_bias);
+    
+    free_matrix(fc1_wT);
+    free_matrix(fc2_wT);
+    free_tensor3(fc1_out);
+
+    return fc2_out;
+}
