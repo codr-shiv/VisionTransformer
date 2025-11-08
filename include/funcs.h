@@ -22,7 +22,8 @@ Tensor3 gemm(Tensor3 A, Matrix W);
 void add_bias(Tensor3 A, Tensor1 bias);
 void gelu(Tensor3 A);
 Tensor3 mlp_forward(Tensor3 in, MLP_Weights* weights);
-Tensor3 MHA(Tensor3 input, Matrix qkvWeight, Matrix qkvBias);
+Tensor3 MHA(Tensor3 input, Matrix qkvWeight, Tensor1 qkvBias, Matrix ProjW, Tensor1 ProjB);
+void addTensor3Inplace(Tensor3, Tensor3);
 
 void softmax_matrix(Matrix input, Matrix output);
 

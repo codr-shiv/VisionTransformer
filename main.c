@@ -59,15 +59,21 @@ int main() {
         print_tensor3(PreprocessedInputs);
 
         Matrix qkv_weight = GetData2(GetPath(e, "attn_qkv_weight"));
-        Matrix qkv_bias = GetData2(GetPath(e, "attn_qkv_bias"));
+        Tensor1 qkv_bias = GetData1(GetPath(e, "attn_qkv_bias"));
+        Matrix proj_weight = GetData2(GetPath(e, "attn_proj_weight"));
+        Tensor1 proj_bias = GetData1(GetPath(e, "attn_proj_bias"));
 
-        Tensor3 MHAOutput = MHA(PreprocessedInputs, qkv_weight, qkv_bias);
-        print_tensor3(PreprocessedInputs);
+        Tensor3 MHAOutput = MHA(PreprocessedInputs, qkv_weight, qkv_bias, proj_weight, proj_bias);
+        // addTensor3Inplace(MHAOutput, PreprocessedInputs);
+        printf("\n\nMHA Output\n");
+        print_tensor3(MHAOutput);
 
         free_tensor1(zero_norm_weight);
         free_tensor1(zero_norm_bias);
         free_matrix(qkv_weight);
-        free_matrix(qkv_bias);
+        free_tensor1(qkv_bias);
+        free_matrix(proj_weight);
+        free_tensor1(proj_bias);
         free_tensor3(MHAOutput);
     }
     // ========================= PUT INTO LOOPS LATER =========================

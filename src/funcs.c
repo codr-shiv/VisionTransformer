@@ -1,9 +1,11 @@
 #include "../include/funcs.h"
+#include "../include/ViT.h"
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
 
 void print_tensor4(Tensor4 t) {
+    printf("(%d, %d, %d, %d)\n", t.B, t.H, t.X, t.Y);
     int lim = 3;
     int B = t.B;
     int C = t.H;
@@ -49,6 +51,7 @@ void print_tensor3(Tensor3 t) {
     int X = t.X;
     int D = t.D;
 
+    printf("(%d, %d, %d)\n", t.B, t.X, t.D);
     printf("[\n");
     for (int b = 0; b < B; b++) {
         printf("  [\n");
@@ -67,7 +70,7 @@ void print_tensor3(Tensor3 t) {
                     d = D - lim;
                 }
 
-                printf("%10.4f", T3(t, b, x, d));
+                printf("%7.4f", T3(t, b, x, d));
                 if (d < D - 1) printf(", ");
             }
             printf("]");
@@ -228,12 +231,10 @@ void softmax_inplace(Matrix input) {
         // Step 3: Normalize in-place
         float inv_sum = 1.0f / sum_exp;
         for (int c = 0; c < input.cols; c++) {
-            M(input, r, c) *= inv_sum;
+            M(input, r, c) *= inv_sum/8;
         }
     }
 }
-
-
 
 Matrix transpose_matrix(Matrix W) {
     Matrix T = alloc_matrix(W.cols, W.rows);
@@ -283,7 +284,6 @@ void gelu(Tensor3 A) {
     }
 }
 
-
 Tensor3 mlp_forward(Tensor3 in, MLP_Weights* weights) {
 
     Matrix fc1_wT = transpose_matrix(weights->fc1_weight);
@@ -303,19 +303,6 @@ Tensor3 mlp_forward(Tensor3 in, MLP_Weights* weights) {
     free_tensor3(fc1_out);
 
     return fc2_out;
-}
-
-Matrix transpose(Matrix input) {
-    Matrix output = alloc_matrix(input.cols, input.rows);
-
-    for (int i = 0; i < input.rows; i++) {
-        for (int j = 0; j < input.cols; j++) {
-            M(output, j, i) = M(input, i, j);
-        }
-    }
-
-    free_matrix(input);
-    return output;
 }
 
 /*
@@ -369,10 +356,20 @@ Matrix multMatrix(Matrix A, Matrix B) {
 column-wise addition of matrices specifically programmed of bias addition in MHA
 USE WITH CAUTION cuz implementation is oddly specific
 */
-Matrix addMatrix_inplace(Matrix A, Matrix B) {
+void addTensor3Inplace(Tensor3 A, Tensor3 B) {
+    for (int b = 0; b < A.B; b++) {
+        for (int x = 0; x < A.X; x++) {
+            for (int d = 0; d < A.D; d++) {
+                T3(A, b, x, d)+=T3(B, b, x, d);
+            }
+        }
+    }
+}
+
+Matrix addBias(Matrix A, Tensor1 B) {
     for (int j = 0; j < A.cols; j++) {
         for (int i = 0; i < A.rows; i++) {
-            M(A, i, j) = M(A, i, j) + M(B, j, 0);
+            M(A, i, j) += T1(B, j);
         }
     }
 
@@ -397,46 +394,97 @@ Matrix getOffsetMatrix(Tensor3 t, int b, int colOffset, int cols) {
     return m;
 }
 
-// Computing qkv concatenated heads
-Tensor3 MHA(Tensor3 input, Matrix qkvWeight, Matrix qkvBias) {
-    qkvWeight = transpose(qkvWeight);
+Tensor3 MHA(Tensor3 input, Matrix qkvWeight, Tensor1 qkvBias, Matrix ProjW, Tensor1 ProjB) {
     int B = input.B;
+    int X = input.X;
+    int D = input.D;
+    int D_k = D/NUM_HEAD;
 
-    // Mem alloc + QKV compute
-    Tensor3 intermediate = alloc_tensor3(B, input.X, qkvWeight.cols);
-    Tensor3 output = alloc_tensor3(B, input.X, 192);  // 192 is size of each result (same as Q, K, V depth)
+    Matrix QKVWt = transpose_matrix(qkvWeight);
+    Tensor3 qkv = gemm(input, QKVWt);
+    add_bias(qkv, qkvBias);
 
-    for (int b = 0; b < B; b++) {
-        Matrix temp = multMatrix(getMatrix(input, b), qkvWeight);
-        addMatrix_inplace(temp, qkvBias);
-
-        Matrix outSlot = getMatrix(intermediate, b);
-        memcpy(outSlot.data, temp.data, temp.rows * temp.cols * sizeof(float));
-        free_matrix(temp);
-    }
+    Tensor3 Q = alloc_tensor3(B, X, D);
+    Tensor3 K = alloc_tensor3(B, X, D);
+    Tensor3 V = alloc_tensor3(B, X, D);
 
     for (int b = 0; b < B; b++) {
-        // Splitting the heads with pointers
-        Matrix Q = getOffsetMatrix(intermediate, b, 0, 192);
-        Matrix K = getOffsetMatrix(intermediate, b, 192, 192);
-        Matrix V = getOffsetMatrix(intermediate, b, 384, 192);
-
-        // Computing Attention
-        Matrix Kt = transpose(K);
-        Matrix QKt = multMatrix(Q, Kt);
-        softmax_inplace(QKt);
-        Matrix result = multMatrix(QKt, V);
-
-        // Dumping Attention in output tensor
-        Matrix outSlot = getMatrix(output, b);
-        memcpy(outSlot.data, result.data, result.rows * result.cols * sizeof(float));
-
-        // Freeing temp alloc memory
-        free_matrix(Kt);
-        free_matrix(QKt);
-        free_matrix(result);
+        for (int x = 0; x < X; x++) {
+            for (int d = 0; d < D; d++) {
+                T3(Q, b, x, d) = T3(qkv, b, x, d);
+                T3(K, b, x, d) = T3(qkv, b, x, D + d);
+                T3(V, b, x, d) = T3(qkv, b, x, 2*D + d);
+            }
+        }
     }
 
-    free_tensor3(intermediate);
-    return output;
+    Tensor4 Qh = split_heads(Q, NUM_HEAD);
+    Tensor4 Kh = split_heads(K, NUM_HEAD);
+    Tensor4 Vh = split_heads(V, NUM_HEAD);
+
+    Tensor4 Scores = qk_dot(Qh, Kh);
+    scale_scores(Scores, D_k);
+    softmax_scores(Scores);
+    Tensor4 Attended = av_dot(Scores, Vh);
+    Tensor3 Context = merge_heads(Attended);
+
+    Matrix ProjWt = transpose_matrix(ProjW);
+    Tensor3 Out = gemm(Context, ProjWt);
+    add_bias(Out, ProjB);
+
+    free_tensor4(Qh);
+    free_tensor4(Kh);
+    free_tensor4(Vh);
+    free_tensor4(Scores);
+    free_tensor4(Attended);
+    free_tensor3(Context);
+    free_matrix(ProjWt);
+    free_matrix(QKVWt);
+
+
+    return Out;
 }
+
+// // Computing qkv concatenated heads
+// Tensor3 MHA(Tensor3 input, Matrix qkvWeight, Tensor1 qkvBias) {
+//     qkvWeight = transpose(qkvWeight);
+//     int B = input.B;
+
+//     // Mem alloc + QKV compute
+//     Tensor3 intermediate = alloc_tensor3(B, input.X, qkvWeight.cols);
+//     Tensor3 output = alloc_tensor3(B, input.X, 192);  // 192 is size of each result (same as Q, K, V depth)
+
+//     for (int b = 0; b < B; b++) {
+//         Matrix temp = multMatrix(getMatrix(input, b), qkvWeight);
+//         addBias(temp, qkvBias);
+
+//         Matrix outSlot = getMatrix(intermediate, b);
+//         memcpy(outSlot.data, temp.data, temp.rows * temp.cols * sizeof(float));
+//         free_matrix(temp);
+//     }
+
+//     for (int b = 0; b < B; b++) {
+//         // Splitting the heads with pointers
+//         Matrix Q = getOffsetMatrix(intermediate, b, 0, 192);
+//         Matrix K = getOffsetMatrix(intermediate, b, 192, 192);
+//         Matrix V = getOffsetMatrix(intermediate, b, 384, 192);
+
+//         // Computing Attention
+//         Matrix Kt = transpose(K);
+//         Matrix QKt = multMatrix(Q, Kt);
+//         softmax_inplace(QKt);
+//         Matrix result = multMatrix(QKt, V);
+
+//         // Dumping Attention in output tensor
+//         Matrix outSlot = getMatrix(output, b);
+//         memcpy(outSlot.data, result.data, result.rows * result.cols * sizeof(float));
+
+//         // Freeing temp alloc memory
+//         free_matrix(Kt);
+//         free_matrix(QKt);
+//         free_matrix(result);
+//     }
+
+//     free_tensor3(intermediate);
+//     return output;
+// }
