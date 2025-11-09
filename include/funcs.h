@@ -24,8 +24,8 @@ void gelu(Tensor3 A);
 Tensor3 mlp_forward(Tensor3 in, Matrix weights, Tensor1 biases);
 Tensor3 MHA(Tensor3 input, Matrix qkvWeight, Tensor1 qkvBias, Matrix ProjW, Tensor1 ProjB);
 Tensor3 addTensor3(Tensor3, Tensor3);
-
-void softmax_matrix(Matrix input, Matrix output);
+Tensor3 GetCLSToken(Tensor3 t);
+char** load_labels(const char *path, int num_labels);
 
 
 #endif

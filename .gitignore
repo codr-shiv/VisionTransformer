@@ -4,8 +4,8 @@
 # *.bin
 *.html
 *.tar.gz
-*.txt
-*.txt~
+# *.txt
+# *.txt~
 *.o
 *.a
 main

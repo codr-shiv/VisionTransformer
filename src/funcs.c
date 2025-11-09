@@ -85,7 +85,6 @@ void print_tensor3(Tensor3 t) {
     printf("]\n");
 }
 
-
 Tensor4 split_heads(Tensor3 in, int H) {
     int B = in.B, X = in.X, D = in.D;
     int Y = D / H;
@@ -433,6 +432,34 @@ Tensor3 MHA(Tensor3 input, Matrix qkvWeight, Tensor1 qkvBias, Matrix ProjW, Tens
 
 
     return Out;
+}
+
+Tensor3 GetCLSToken(Tensor3 t) {
+    Tensor3 out = alloc_tensor3(t.B, 1, t.D);
+    for (int b = 0; b < t.B; b++) {
+        for (int i = 0; i < t.D; i++) {
+            T3(out, b, 0, i) = T3(t, b, 0, i);
+        }
+    }
+    return out;
+}
+
+char** load_labels(const char *path, int num_labels) {
+    FILE *fp = fopen(path, "r");
+    if (!fp) { printf("Labels file not found!\n"); exit(1); }
+
+    char **labels = malloc(num_labels * sizeof(char*));
+    char buffer[256];
+    int i = 0;
+
+    while (fgets(buffer, sizeof(buffer), fp) && i < num_labels) {
+        buffer[strcspn(buffer, "\n")] = 0; // strip newline
+        labels[i] = strdup(buffer);
+        i++;
+    }
+
+    fclose(fp);
+    return labels;
 }
 
 // // Computing qkv concatenated heads

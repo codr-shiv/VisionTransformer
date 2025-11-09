@@ -6,33 +6,24 @@
 #include "include/ViT.h"
 
 int main() {
-    char *Labels = malloc(sizeof(char) * DATASET_SIZE);
+    char** Labels = load_labels("dataset/ImageNetSelected/Labels.txt", 1000);
     // (B, C, H, W);
     // Tensor4 Images = LoadCIFAR10Dataset("dataset/cifar-10-batches-bin/train_all.bin", Labels, 0);
     Tensor4 Images = LoadImageFromPPM("dataset/ImageNetSelected/n01687978_10071.ppm");
     printf("Input Image\n");
     print_tensor4(Images);
+
     Tensor4 ResizedImages = Resize256(Images);
     printf("\n\nResized Image\n");
     print_tensor4(ResizedImages);
+
     Tensor4 CroppedImages = Crop224(ResizedImages);
     printf("\n\nCropped Image\n");
     print_tensor4(CroppedImages);
+
     Normalize(CroppedImages);
     printf("\n\nNormalized Image\n");
     print_tensor4(CroppedImages);
-
-    // conv2d
-    // tempdata
-
-    // Tensor4 patch_embed_proj_weights = alloc_tensor4(192, 3, 16, 16);
-    // Tensor1 patch_embed_proj_biases = alloc_tensor1(192);
-    // for (int i = 0; i < 192*3*16*16; i++) {
-    //     patch_embed_proj_weights.data[i] = 1.0f;
-    // }
-    // for (int i = 0; i < 192; i++) {
-    //     patch_embed_proj_biases.data[i] = 1.0f;
-    // }
 
     Tensor4 patch_embed_proj_weights = GetData4("parameters/patch_embed_proj_weight.bin");
     Tensor1 patch_embed_proj_biases = GetData1("parameters/patch_embed_proj_bias.bin");
@@ -113,15 +104,44 @@ int main() {
         // free_tensor3(ResidualAdd2);
     }
     // ========================= PUT INTO LOOPS LATER =========================
+    Tensor3 cls_token = GetCLSToken(PreprocessedInputs);
+    Tensor1 norm_weight = GetData1("parameters/norm_weight.bin");
+    Tensor1 norm_bias = GetData1("parameters/norm_bias.bin");
+    Tensor3 NormedOutput = layernorm(cls_token, norm_weight, norm_bias);
+    printf("\nNormed Image\n");
+    print_tensor3(NormedOutput);
+
+    Matrix head_weight = GetData2("parameters/head_weight.bin");
+    Tensor1 head_bias = GetData1("parameters/head_bias.bin");
+    Tensor3 Output = mlp_forward(NormedOutput, head_weight, head_bias);
+    printf("\n\nOutput\n");
+    print_tensor3(Output);
+
+    for (int b = 0; b < Output.B; b++) {
+        int indx = 0;
+        float max = T3(Output, b, 0, 0);
+        for (int i = 1; i < 1000; i++) {
+            if (T3(Output, b, 0, i) > max) {
+                indx = i;
+                max = T3(Output, b, 0, i);
+            }
+        }
+        printf("Prediction [%d]: %s\n", b, Labels[indx]);
+    }
     
     free_tensor1(patch_embed_proj_biases);
     free_tensor3(cls);
     free_tensor3(pos_embed);
     free_tensor3(conv);
     // free_tensor3(PreprocessedInputs);
+    free_tensor3(cls_token);
+    free_tensor3(NormedOutput);
     free_tensor4(Images);
     free_tensor4(ResizedImages);
     free_tensor4(patch_embed_proj_weights);
     free_tensor4(CroppedImages);
+    free_matrix(head_weight);
+    free_tensor1(head_bias);
+    free_tensor3(Output);
     free(Labels);
 }
