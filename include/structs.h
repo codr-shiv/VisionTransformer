@@ -49,5 +49,6 @@ void free_tensor1(Tensor1);
 void free_tensor3(Tensor3);
 void free_tensor4(Tensor4);
 
+Tensor3 copytensor3(Tensor3);
 
 #endif

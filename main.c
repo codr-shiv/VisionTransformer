@@ -51,41 +51,77 @@ int main() {
 
     // ========================= PUT INTO LOOPS LATER =========================
     for (int e = 0; e < ENCODER_BLOCKS; e++) {
-        Tensor1 zero_norm_weight = GetData1(GetPath(e, "norm1_weight"));
-        Tensor1 zero_norm_bias = GetData1(GetPath(e, "norm1_bias"));
-
-        PreprocessedInputs = layernorm(PreprocessedInputs, zero_norm_weight, zero_norm_bias);
-        printf("\n\nNorm1ed Image\n");
+        printf("\n\n\n================================================ BLOCK %2d ================================================", e);
+        Tensor1 norm_1_weight = GetData1(GetPath(e, "norm1_weight"));
+        Tensor1 norm_1_bias = GetData1(GetPath(e, "norm1_bias"));
+        Tensor3 ResidualAdd1 = copytensor3(PreprocessedInputs);
+        PreprocessedInputs = layernorm(PreprocessedInputs, norm_1_weight, norm_1_bias);
+        printf("\nNorm1ed Image\n");
         print_tensor3(PreprocessedInputs);
 
         Matrix qkv_weight = GetData2(GetPath(e, "attn_qkv_weight"));
         Tensor1 qkv_bias = GetData1(GetPath(e, "attn_qkv_bias"));
         Matrix proj_weight = GetData2(GetPath(e, "attn_proj_weight"));
         Tensor1 proj_bias = GetData1(GetPath(e, "attn_proj_bias"));
-
         Tensor3 MHAOutput = MHA(PreprocessedInputs, qkv_weight, qkv_bias, proj_weight, proj_bias);
-        // addTensor3Inplace(MHAOutput, PreprocessedInputs);
         printf("\n\nMHA Output\n");
         print_tensor3(MHAOutput);
 
-        free_tensor1(zero_norm_weight);
-        free_tensor1(zero_norm_bias);
+        Tensor1 norm_2_weight = GetData1(GetPath(e, "norm2_weight"));
+        Tensor1 norm_2_bias = GetData1(GetPath(e, "norm2_bias"));
+        MHAOutput = addTensor3(MHAOutput, ResidualAdd1);
+        Tensor3 ResidualAdd2 = copytensor3(MHAOutput);
+        MHAOutput = layernorm(MHAOutput, norm_2_weight, norm_2_bias);
+        printf("\n\nNorm2ed Image\n");
+        print_tensor3(MHAOutput);
+        Matrix fc1_weight = GetData2(GetPath(e, "mlp_fc1_weight"));
+        Tensor1 fc1_bias = GetData1(GetPath(e, "mlp_fc1_bias"));
+        Tensor3 FC1out = mlp_forward(MHAOutput, fc1_weight, fc1_bias);
+        printf("\n\nFC1\n");
+        print_tensor3(FC1out);
+        
+        gelu(FC1out);
+        printf("\n\nGeLU\n");
+        print_tensor3(FC1out);
+
+        Matrix fc2_weight = GetData2(GetPath(e, "mlp_fc2_weight"));
+        Tensor1 fc2_bias = GetData1(GetPath(e, "mlp_fc2_bias"));
+        Tensor3 FC2out = mlp_forward(FC1out, fc2_weight, fc2_bias);
+        printf("\n\nFC2\n");
+        print_tensor3(FC2out);
+
+        PreprocessedInputs = addTensor3(FC2out, ResidualAdd2);
+        printf("\n\nBlock %d Output\n", e);
+        print_tensor3(PreprocessedInputs);
+
+        free_tensor1(norm_1_weight);
+        free_tensor1(norm_1_bias);
+        free_tensor1(norm_2_weight);
+        free_tensor1(norm_2_bias);
         free_matrix(qkv_weight);
         free_tensor1(qkv_bias);
         free_matrix(proj_weight);
         free_tensor1(proj_bias);
+        free_matrix(fc1_weight);
+        free_tensor1(fc1_bias);
+        free_matrix(fc2_weight);
+        free_tensor1(fc2_bias);
         free_tensor3(MHAOutput);
+        free_tensor3(ResidualAdd1);
+        free_tensor3(FC1out);
+        free_tensor3(FC2out);
+        // free_tensor3(ResidualAdd2);
     }
     // ========================= PUT INTO LOOPS LATER =========================
     
-    free_tensor4(Images);
-    free_tensor4(ResizedImages);
-    free_tensor4(CroppedImages);
-    free_tensor4(patch_embed_proj_weights);
     free_tensor1(patch_embed_proj_biases);
     free_tensor3(cls);
     free_tensor3(pos_embed);
     free_tensor3(conv);
-    free_tensor3(PreprocessedInputs);
+    // free_tensor3(PreprocessedInputs);
+    free_tensor4(Images);
+    free_tensor4(ResizedImages);
+    free_tensor4(patch_embed_proj_weights);
+    free_tensor4(CroppedImages);
     free(Labels);
 }

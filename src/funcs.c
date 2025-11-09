@@ -284,25 +284,14 @@ void gelu(Tensor3 A) {
     }
 }
 
-Tensor3 mlp_forward(Tensor3 in, MLP_Weights* weights) {
-
-    Matrix fc1_wT = transpose_matrix(weights->fc1_weight);
-    Matrix fc2_wT = transpose_matrix(weights->fc2_weight);
+Tensor3 mlp_forward(Tensor3 in, Matrix weights, Tensor1 biases) {
+    Matrix Wt = transpose_matrix(weights);
     
-    // [1, 197, 192] * [192, 768] = [1, 197, 768]
-    Tensor3 fc1_out = gemm(in, fc1_wT);
-    add_bias(fc1_out, weights->fc1_bias); 
-    gelu(fc1_out); 
-
-    // [1, 197, 768] * [768, 192] = [1, 197, 192]
-    Tensor3 fc2_out = gemm(fc1_out, fc2_wT);
-    add_bias(fc2_out, weights->fc2_bias);
+    Tensor3 out = gemm(in, Wt);
+    add_bias(out, biases);
+    free_matrix(Wt);
     
-    free_matrix(fc1_wT);
-    free_matrix(fc2_wT);
-    free_tensor3(fc1_out);
-
-    return fc2_out;
+    return out;
 }
 
 /*
@@ -356,7 +345,7 @@ Matrix multMatrix(Matrix A, Matrix B) {
 column-wise addition of matrices specifically programmed of bias addition in MHA
 USE WITH CAUTION cuz implementation is oddly specific
 */
-void addTensor3Inplace(Tensor3 A, Tensor3 B) {
+Tensor3 addTensor3(Tensor3 A, Tensor3 B) {
     for (int b = 0; b < A.B; b++) {
         for (int x = 0; x < A.X; x++) {
             for (int d = 0; d < A.D; d++) {
@@ -364,6 +353,7 @@ void addTensor3Inplace(Tensor3 A, Tensor3 B) {
             }
         }
     }
+    return A;
 }
 
 Matrix addBias(Matrix A, Tensor1 B) {

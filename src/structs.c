@@ -46,6 +46,13 @@ Tensor4 alloc_tensor4(int B, int H, int X, int Y) {
     return t;
 }
 
+Tensor3 copytensor3(Tensor3 t) {
+    Tensor3 out = alloc_tensor3(t.B, t.X, t.D);
+    for (int i = 0; i < t.B*t.X*t.D; i++) {
+        out.data[i] = t.data[i];
+    }
+    return out;
+}
 
 void free_tensor1(Tensor1 t) { free(t.data); }
 void free_tensor3(Tensor3 t) {free(t.data);}
