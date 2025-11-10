@@ -22,8 +22,6 @@ int main() {
     // n02231487_1002       walking stick
     // n02412080_10216      ram
     // n02493509_10045      titi
-    // n02837789_10352      bikini
-    // n02892767_10242      brassiere
     // n03032252_101298     cinema
     // n03062245_1030       wine bottle         FAILED:     cocktail shaker (cant blame it tho)
     // n03240683_10240      drilling platform
