@@ -8,14 +8,27 @@
 int main() {
     char** Labels = load_labels("dataset/ImageNetSelected/Labels.txt", 1000);
     // (B, C, H, W);
-    Tensor4 Images = LoadImageFromPPM("dataset/ImageNetSelected/n02018795_102.ppm");
-    // n01687978_10071 agama
-    // n01735189_11267 garter snake
-    // n01514668_10054 cock
-    // n01847000_10087 drake
-    // n01855032_1046 red-breasted merganser
-    // n02018795_102 bustard
-    // n02025239_1005 ruddy turnstone
+    Tensor4 Images = LoadImageFromPPM("dataset/ImageNetSelected/n01514668_10054.ppm");
+    // n01514668_10054      cock
+    // n01687978_10071      agama
+    // n01735189_11267      garter snake
+    // n01847000_10087      drake
+    // n01855032_1046       red-breasted merganser
+    // n02018795_102        bustard
+    // n02025239_1005       ruddy turnstone
+    // n02113978_10037      mexican hairless
+    // n02127052_10040      lynx
+    // n02125311_10473      cougar
+    // n02231487_1002       walking stick
+    // n02412080_10216      ram
+    // n02493509_10045      titi
+    // n02837789_10352      bikini
+    // n02892767_10242      brassiere
+    // n03032252_101298     cinema
+    // n03062245_1030       wine bottle         FAILED:     cocktail shaker (cant blame it tho)
+    // n03240683_10240      drilling platform
+    // n03764736_10075      sunglasses          FAILED      milk can
+    // n03825788_10304      nipple
     if (PRINT) {
         printf("Input Image\n");
         print_tensor4(Images);
