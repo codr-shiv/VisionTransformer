@@ -1,5 +1,7 @@
 # ViT-Tiny Inference Pipeline in Pure C
 
+> "I think, therefore I am. It sees, yet does not think; it witnesses the world, but never itself. And so we bestowed upon it the gift of vision."
+
 To run the program, follow the following steps after setting the terminal address to current directory -
 
 ### To run the code with currently loaded image -

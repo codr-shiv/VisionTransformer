@@ -8,8 +8,14 @@
 int main() {
     char** Labels = load_labels("dataset/ImageNetSelected/Labels.txt", 1000);
     // (B, C, H, W);
-    Tensor4 Images = LoadImageFromPPM("dataset/ImageNetSelected/n01687978_10071.ppm");
-    // n01735189_11267
+    Tensor4 Images = LoadImageFromPPM("dataset/ImageNetSelected/n02018795_102.ppm");
+    // n01687978_10071 agama
+    // n01735189_11267 garter snake
+    // n01514668_10054 cock
+    // n01847000_10087 drake
+    // n01855032_1046 red-breasted merganser
+    // n02018795_102 bustard
+    // n02025239_1005 ruddy turnstone
     if (PRINT) {
         printf("Input Image\n");
         print_tensor4(Images);
