@@ -12,3 +12,4 @@ main
 main_debug
 *.vscode/
 *.json
+*.zip
