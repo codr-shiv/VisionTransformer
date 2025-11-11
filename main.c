@@ -26,7 +26,6 @@ int main() {
     // n03062245_1030       wine bottle         FAILED:     cocktail shaker (cant blame it tho)
     // n03240683_10240      drilling platform
     // n03764736_10075      sunglasses          FAILED      milk can
-    // n03825788_10304      nipple
     if (PRINT) {
         printf("Input Image\n");
         print_tensor4(Images);

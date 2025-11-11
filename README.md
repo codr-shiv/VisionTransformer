@@ -22,3 +22,13 @@ Step 2.1 - If image is not in .ppm format, set .jpeg image path in convert-image
 Step 3 - Run ./build.sh
 
 Step 4 - Run ./main
+
+### Other knowledge
+
+Header files are in `include/`
+
+Non-main.c files are in `src/`
+
+All weights and biases are stored in `parameters/`
+
+All images are stored in `dataset/ImageNetSelected/`
